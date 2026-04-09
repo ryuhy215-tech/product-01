@@ -1,0 +1,17 @@
+{
+  "name": "healtogether",
+  "version": "1.0.0",
+  "description": "전세계 환우들을 위한 실시간 채팅 커뮤니티",
+  "main": "health-server.js",
+  "scripts": {
+    "start": "node health-server.js",
+    "dev": "node health-server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.5"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

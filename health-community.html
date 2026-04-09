@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HealTogether — 함께 이겨내요</title>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <style>
+    :root {
+      --primary: #4a9d8f;
+      --primary-light: #6dbdaf;
+      --primary-dark: #357a6d;
+      --accent: #f0a04b;
+      --accent-light: #ffd59e;
+      --bg: #f4f9f8;
+      --surface: #ffffff;
+      --surface2: #eef6f4;
+      --text: #1a2e2b;
+      --text-muted: #6b8f8a;
+      --border: #cce4df;
+      --danger: #e05c5c;
+      --success: #4caf80;
+      --shadow: 0 4px 20px rgba(74,157,143,0.12);
+      --radius: 16px;
+      --radius-sm: 8px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── HEADER ─────────────────────────────────────────── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 12px rgba(74,157,143,0.08);
+    }
+    .header-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; height: 64px;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 1.3rem; font-weight: 800; color: var(--primary-dark);
+      text-decoration: none;
+    }
+    .logo-icon { font-size: 1.6rem; }
+    .logo-sub { font-size: 0.7rem; font-weight: 400; color: var(--text-muted); display: block; margin-top: -4px; }
+
+    /* Language Selector */
+    .lang-selector {
+      display: flex; gap: 4px; background: var(--surface2);
+      border-radius: 30px; padding: 4px;
+    }
+    .lang-btn {
+      background: none; border: none; cursor: pointer;
+      font-size: 0.75rem; font-weight: 600; color: var(--text-muted);
+      padding: 5px 10px; border-radius: 20px; transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .lang-btn.active, .lang-btn:hover {
+      background: var(--primary); color: white;
+    }
+
+    /* ─── MAIN LAYOUT ────────────────────────────────────── */
+    .main-wrap {
+      max-width: 1100px; margin: 0 auto;
+      padding: 32px 24px; display: flex; gap: 24px;
+    }
+
+    /* ─── SIDEBAR ────────────────────────────────────────── */
+    .sidebar {
+      width: 280px; flex-shrink: 0;
+    }
+    .sidebar-card {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 20px; box-shadow: var(--shadow); margin-bottom: 16px;
+    }
+    .sidebar-title {
+      font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 12px;
+    }
+    .tag-cloud { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag-pill {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 4px 12px;
+      font-size: 0.75rem; color: var(--text-muted); cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tag-pill:hover, .tag-pill.active {
+      background: var(--primary); color: white; border-color: var(--primary);
+    }
+
+    .stat-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label { font-size: 0.82rem; color: var(--text-muted); }
+    .stat-value { font-size: 0.95rem; font-weight: 700; color: var(--primary-dark); }
+
+    .notice-box {
+      background: linear-gradient(135deg, #e8f5f2, #d4ede8);
+      border-left: 3px solid var(--primary);
+      border-radius: var(--radius-sm); padding: 12px 14px;
+    }
+    .notice-box p { font-size: 0.78rem; color: var(--text-muted); line-height: 1.6; }
+
+    /* ─── CONTENT AREA ───────────────────────────────────── */
+    .content { flex: 1; min-width: 0; }
+
+    /* Hero Banner */
+    .hero {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 60%, var(--primary-light) 100%);
+      border-radius: var(--radius); padding: 32px 28px; margin-bottom: 24px;
+      color: white; position: relative; overflow: hidden;
+    }
+    .hero::after {
+      content: '🫂'; position: absolute; right: 24px; top: 50%;
+      transform: translateY(-50%); font-size: 5rem; opacity: 0.2;
+    }
+    .hero h1 { font-size: 1.6rem; font-weight: 800; margin-bottom: 8px; }
+    .hero p { font-size: 0.9rem; opacity: 0.85; margin-bottom: 20px; line-height: 1.6; }
+    .hero-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 10px 20px; border-radius: 30px; font-size: 0.85rem;
+      font-weight: 700; cursor: pointer; border: none; transition: all 0.2s;
+      text-decoration: none;
+    }
+    .btn-white {
+      background: white; color: var(--primary-dark);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .btn-white:hover { background: var(--accent-light); transform: translateY(-1px); }
+    .btn-outline-white {
+      background: rgba(255,255,255,0.15); color: white;
+      border: 1.5px solid rgba(255,255,255,0.5);
+    }
+    .btn-outline-white:hover { background: rgba(255,255,255,0.25); }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+    .btn-accent { background: var(--accent); color: white; }
+    .btn-accent:hover { background: #d4893a; }
+    .btn-ghost {
+      background: transparent; color: var(--text-muted);
+      border: 1.5px solid var(--border);
+    }
+    .btn-ghost:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* Search + Filter Bar */
+    .search-bar {
+      display: flex; gap: 10px; margin-bottom: 20px; align-items: center;
+    }
+    .search-input-wrap { flex: 1; position: relative; }
+    .search-input-wrap input {
+      width: 100%; padding: 12px 16px 12px 44px;
+      border: 1.5px solid var(--border); border-radius: 30px;
+      font-size: 0.9rem; color: var(--text); background: var(--surface);
+      outline: none; transition: border-color 0.2s;
+    }
+    .search-input-wrap input:focus { border-color: var(--primary); }
+    .search-input-wrap::before {
+      content: '🔍'; position: absolute; left: 16px;
+      top: 50%; transform: translateY(-50%); font-size: 1rem;
+    }
+    .sort-select {
+      padding: 10px 16px; border: 1.5px solid var(--border);
+      border-radius: 30px; font-size: 0.82rem; color: var(--text-muted);
+      background: var(--surface); outline: none; cursor: pointer;
+    }
+
+    /* Room Cards Grid */
+    .rooms-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 700px) { .rooms-grid { grid-template-columns: 1fr; } }
+
+    .room-card {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 18px; box-shadow: var(--shadow); cursor: pointer;
+      border: 1.5px solid transparent; transition: all 0.22s;
+      position: relative; overflow: hidden;
+    }
+    .room-card:hover {
+      border-color: var(--primary); transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(74,157,143,0.2);
+    }
+    .room-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .room-name { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .room-badge {
+      font-size: 0.7rem; font-weight: 700; padding: 2px 8px;
+      border-radius: 10px; white-space: nowrap;
+    }
+    .badge-active { background: #e7f7f0; color: var(--success); }
+    .badge-new { background: #fff4e0; color: var(--accent); }
+    .room-desc {
+      font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;
+      line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .room-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+    .room-tag {
+      font-size: 0.68rem; padding: 2px 8px; border-radius: 10px;
+      background: var(--surface2); color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .room-meta {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 0.75rem; color: var(--text-muted);
+    }
+    .room-meta span { display: flex; align-items: center; gap: 3px; }
+    .online-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--success); display: inline-block;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* ─── VIEWS ──────────────────────────────────────────── */
+    #view-list { display: block; }
+    #view-chat { display: none; }
+
+    /* ─── CHAT VIEW ──────────────────────────────────────── */
+    .chat-header {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 16px 20px; margin-bottom: 16px;
+      box-shadow: var(--shadow); display: flex; align-items: center; gap: 12px;
+    }
+    .chat-back {
+      background: none; border: none; cursor: pointer; font-size: 1.3rem;
+      color: var(--primary); padding: 4px; border-radius: 8px;
+      transition: background 0.2s;
+    }
+    .chat-back:hover { background: var(--surface2); }
+    .chat-header-info { flex: 1; }
+    .chat-room-name { font-size: 1.1rem; font-weight: 800; color: var(--text); }
+    .chat-room-meta { font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 12px; margin-top: 2px; }
+
+    .chat-layout { display: flex; gap: 16px; height: calc(100vh - 220px); min-height: 400px; }
+
+    .chat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .messages-area {
+      flex: 1; background: var(--surface); border-radius: var(--radius);
+      padding: 16px; overflow-y: auto; margin-bottom: 12px;
+      box-shadow: var(--shadow);
+    }
+    .messages-area::-webkit-scrollbar { width: 4px; }
+    .messages-area::-webkit-scrollbar-track { background: transparent; }
+    .messages-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* System message */
+    .sys-msg {
+      text-align: center; font-size: 0.75rem; color: var(--text-muted);
+      padding: 8px; margin: 8px 0;
+    }
+    .sys-msg span {
+      background: var(--surface2); padding: 4px 12px;
+      border-radius: 20px; border: 1px solid var(--border);
+    }
+
+    /* Chat bubbles */
+    .msg-wrap { display: flex; gap: 10px; margin: 10px 0; animation: fadeUp 0.2s ease; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .msg-wrap.me { flex-direction: row-reverse; }
+    .msg-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary-light), var(--primary-dark));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; flex-shrink: 0; color: white; font-weight: 700;
+    }
+    .msg-body { max-width: 70%; }
+    .msg-name-time {
+      font-size: 0.7rem; color: var(--text-muted);
+      margin-bottom: 3px; display: flex; align-items: center; gap: 6px;
+    }
+    .msg-wrap.me .msg-name-time { justify-content: flex-end; }
+    .msg-type-badge {
+      font-size: 0.65rem; padding: 1px 6px; border-radius: 8px;
+      font-weight: 700;
+    }
+    .type-exp { background: #e3f2fd; color: #1565c0; }
+    .type-treat { background: #e8f5e9; color: #2e7d32; }
+    .type-q { background: #fff8e1; color: #e65100; }
+    .type-cheer { background: #fce4ec; color: #c62828; }
+    .msg-bubble {
+      padding: 10px 14px; border-radius: 18px;
+      font-size: 0.88rem; line-height: 1.55; word-break: break-word;
+      background: var(--surface2); color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .msg-wrap.me .msg-bubble {
+      background: var(--primary); color: white; border-color: var(--primary-dark);
+    }
+    .msg-footer {
+      display: flex; align-items: center; gap: 8px; margin-top: 4px;
+    }
+    .msg-wrap.me .msg-footer { justify-content: flex-end; }
+    .like-btn {
+      background: none; border: none; cursor: pointer;
+      font-size: 0.75rem; color: var(--text-muted); display: flex;
+      align-items: center; gap: 3px; padding: 2px 6px;
+      border-radius: 10px; transition: all 0.2s;
+    }
+    .like-btn:hover { background: #fce4ec; color: #e91e63; }
+    .like-btn.liked { color: #e91e63; font-weight: 700; }
+
+    /* Input area */
+    .msg-input-area {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 12px 14px; box-shadow: var(--shadow);
+    }
+    .msg-type-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+    .type-btn {
+      padding: 4px 12px; border-radius: 20px; font-size: 0.75rem;
+      font-weight: 600; cursor: pointer; border: 1.5px solid var(--border);
+      background: var(--surface2); color: var(--text-muted); transition: all 0.18s;
+    }
+    .type-btn.selected { border-color: var(--primary); color: var(--primary); background: var(--surface); }
+    .type-btn[data-type="exp"].selected { background: #e3f2fd; border-color: #1565c0; color: #1565c0; }
+    .type-btn[data-type="treat"].selected { background: #e8f5e9; border-color: #2e7d32; color: #2e7d32; }
+    .type-btn[data-type="q"].selected { background: #fff8e1; border-color: #e65100; color: #e65100; }
+    .type-btn[data-type="cheer"].selected { background: #fce4ec; border-color: #c62828; color: #c62828; }
+    .msg-input-row { display: flex; gap: 10px; align-items: flex-end; }
+    .msg-textarea {
+      flex: 1; border: 1.5px solid var(--border); border-radius: 12px;
+      padding: 10px 14px; font-size: 0.88rem; resize: none; outline: none;
+      font-family: inherit; color: var(--text); background: var(--bg);
+      transition: border-color 0.2s; min-height: 44px; max-height: 120px;
+    }
+    .msg-textarea:focus { border-color: var(--primary); }
+    .send-btn {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: var(--primary); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; color: white; transition: all 0.2s; flex-shrink: 0;
+    }
+    .send-btn:hover { background: var(--primary-dark); transform: scale(1.05); }
+
+    /* Online users panel */
+    .chat-side {
+      width: 200px; flex-shrink: 0;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .panel-card {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 14px; box-shadow: var(--shadow);
+    }
+    .panel-title {
+      font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 10px;
+    }
+    .user-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 0; font-size: 0.8rem; color: var(--text-muted);
+    }
+    .user-av {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary-light), var(--primary-dark));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem; color: white; font-weight: 700; flex-shrink: 0;
+    }
+
+    /* ─── MODALS ──────────────────────────────────────────── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .overlay.show { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 28px; width: 90%; max-width: 500px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      transform: scale(0.95); transition: transform 0.2s;
+    }
+    .overlay.show .modal { transform: scale(1); }
+    .modal-title {
+      font-size: 1.2rem; font-weight: 800; color: var(--text); margin-bottom: 6px;
+    }
+    .modal-sub { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block; font-size: 0.8rem; font-weight: 700;
+      color: var(--text-muted); margin-bottom: 6px;
+    }
+    .form-input, .form-textarea, .form-select {
+      width: 100%; padding: 10px 14px;
+      border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      font-size: 0.88rem; color: var(--text); font-family: inherit;
+      background: var(--bg); outline: none; transition: border-color 0.2s;
+    }
+    .form-input:focus, .form-textarea:focus, .form-select:focus {
+      border-color: var(--primary);
+    }
+    .form-textarea { resize: vertical; min-height: 80px; }
+    .tags-input { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+    /* Nickname Modal */
+    .nick-suggestions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .nick-chip {
+      padding: 5px 12px; border-radius: 20px; background: var(--surface2);
+      border: 1.5px solid var(--border); font-size: 0.78rem;
+      cursor: pointer; color: var(--text-muted); transition: all 0.18s;
+    }
+    .nick-chip:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--primary-dark); color: white;
+      padding: 10px 22px; border-radius: 30px; font-size: 0.85rem;
+      font-weight: 600; z-index: 9999; opacity: 0;
+      transition: all 0.3s; pointer-events: none; white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center; padding: 60px 20px; color: var(--text-muted);
+    }
+    .empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty-state h3 { font-size: 1rem; margin-bottom: 6px; color: var(--text); }
+    .empty-state p { font-size: 0.82rem; }
+
+    /* Connection status */
+    .conn-status {
+      position: fixed; bottom: 16px; right: 16px;
+      background: var(--surface); border-radius: 30px;
+      padding: 6px 14px; font-size: 0.75rem; font-weight: 600;
+      box-shadow: var(--shadow); border: 1px solid var(--border);
+      display: flex; align-items: center; gap: 6px;
+      z-index: 500; transition: all 0.3s;
+    }
+    .conn-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+    .conn-dot.online { background: var(--success); animation: pulse 2s infinite; }
+    .conn-dot.offline { background: var(--danger); }
+    .conn-dot.connecting { background: var(--accent); animation: pulse 1s infinite; }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .main-wrap { flex-direction: column; }
+      .sidebar { width: 100%; }
+      .chat-side { display: none; }
+      .rooms-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .header-inner { padding: 0 12px; }
+      .main-wrap { padding: 16px 12px; }
+      .lang-selector { gap: 2px; }
+      .lang-btn { padding: 4px 7px; font-size: 0.68rem; }
+      .hero { padding: 20px 18px; }
+      .hero h1 { font-size: 1.2rem; }
+      .hero::after { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── HEADER ─────────────────────────────────── -->
+<header>
+  <div class="header-inner">
+    <a href="#" class="logo" onclick="showList()">
+      <span class="logo-icon">💚</span>
+      <span>HealTogether<span class="logo-sub" data-i18n="logo_sub">함께 이겨내요</span></span>
+    </a>
+    <div class="lang-selector">
+      <button class="lang-btn active" onclick="setLang('ko')">한국어</button>
+      <button class="lang-btn" onclick="setLang('en')">English</button>
+      <button class="lang-btn" onclick="setLang('ja')">日本語</button>
+      <button class="lang-btn" onclick="setLang('zh')">中文</button>
+      <button class="lang-btn" onclick="setLang('es')">Español</button>
+      <button class="lang-btn" onclick="setLang('fr')">Français</button>
+    </div>
+  </div>
+</header>
+
+<!-- ─── MAIN ───────────────────────────────────── -->
+<div class="main-wrap">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-card">
+      <div class="sidebar-title" data-i18n="popular_tags">인기 태그</div>
+      <div class="tag-cloud" id="tag-cloud">
+        <span class="tag-pill" onclick="filterTag(this,'암')">암</span>
+        <span class="tag-pill" onclick="filterTag(this,'당뇨')">당뇨</span>
+        <span class="tag-pill" onclick="filterTag(this,'고혈압')">고혈압</span>
+        <span class="tag-pill" onclick="filterTag(this,'우울증')">우울증</span>
+        <span class="tag-pill" onclick="filterTag(this,'루푸스')">루푸스</span>
+        <span class="tag-pill" onclick="filterTag(this,'희귀병')">희귀병</span>
+        <span class="tag-pill" onclick="filterTag(this,'만성통증')">만성통증</span>
+        <span class="tag-pill" onclick="filterTag(this,'파킨슨')">파킨슨</span>
+        <span class="tag-pill" onclick="filterTag(this,'알레르기')">알레르기</span>
+        <span class="tag-pill" onclick="filterTag(this,'심장병')">심장병</span>
+      </div>
+    </div>
+    <div class="sidebar-card">
+      <div class="sidebar-title" data-i18n="stats">현황</div>
+      <div class="stat-row"><span class="stat-label" data-i18n="total_rooms">전체 방</span><span class="stat-value" id="stat-rooms">0</span></div>
+      <div class="stat-row"><span class="stat-label" data-i18n="online_users">접속자</span><span class="stat-value" id="stat-users">0</span></div>
+      <div class="stat-row"><span class="stat-label" data-i18n="total_msgs">오늘 메시지</span><span class="stat-value" id="stat-msgs">0</span></div>
+    </div>
+    <div class="sidebar-card">
+      <div class="notice-box">
+        <p data-i18n="notice">⚠️ 이곳의 정보는 의학적 조언이 아닙니다. 치료 결정은 반드시 의사와 상담하세요. 서로의 경험을 나누고 응원하는 공간입니다.</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ── LIST VIEW ── -->
+    <div id="view-list">
+      <div class="hero">
+        <h1 data-i18n="hero_title">병을 가진 당신, 혼자가 아닙니다</h1>
+        <p data-i18n="hero_desc">같은 병을 가진 전 세계인과 경험, 치료 정보, 위로를 나누세요. 병명으로 방을 만들거나 참여해 보세요.</p>
+        <div class="hero-actions">
+          <button class="btn btn-white" onclick="openCreateModal()">
+            ➕ <span data-i18n="create_room">방 만들기</span>
+          </button>
+          <button class="btn btn-outline-white" onclick="document.getElementById('search').focus()">
+            🔍 <span data-i18n="find_room">방 찾기</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="search-bar">
+        <div class="search-input-wrap">
+          <input type="text" id="search" placeholder="병명으로 검색..." oninput="filterRooms()" data-i18n-placeholder="search_placeholder" />
+        </div>
+        <select class="sort-select" onchange="sortRooms(this.value)">
+          <option value="active" data-i18n="sort_active">활성순</option>
+          <option value="new" data-i18n="sort_new">최신순</option>
+          <option value="msg" data-i18n="sort_msg">메시지순</option>
+        </select>
+      </div>
+
+      <div class="rooms-grid" id="rooms-grid">
+        <!-- filled by JS -->
+      </div>
+      <div id="rooms-empty" class="empty-state" style="display:none">
+        <div class="empty-icon">🔍</div>
+        <h3 data-i18n="no_rooms_title">해당하는 방이 없어요</h3>
+        <p data-i18n="no_rooms_desc">직접 방을 만들어 보세요!</p>
+      </div>
+    </div>
+
+    <!-- ── CHAT VIEW ── -->
+    <div id="view-chat">
+      <div class="chat-header">
+        <button class="chat-back" onclick="leaveRoom()" title="뒤로">◀</button>
+        <div class="chat-header-info">
+          <div class="chat-room-name" id="chat-room-name">—</div>
+          <div class="chat-room-meta">
+            <span><span class="online-dot"></span> <span id="chat-online-count">0</span> <span data-i18n="online">명 접속중</span></span>
+            <span id="chat-room-desc-meta"></span>
+          </div>
+        </div>
+        <button class="btn btn-ghost" onclick="copyRoomLink()" style="font-size:0.78rem;padding:7px 14px">🔗 <span data-i18n="share">공유</span></button>
+      </div>
+
+      <div class="chat-layout">
+        <div class="chat-main">
+          <div class="messages-area" id="messages-area">
+            <div class="sys-msg"><span data-i18n="welcome_msg">방에 입장했습니다. 서로를 존중하며 경험을 나눠주세요 💚</span></div>
+          </div>
+          <div class="msg-input-area">
+            <div class="msg-type-row">
+              <button class="type-btn selected" data-type="exp" onclick="selectType(this)" data-i18n="type_exp">📖 경험담</button>
+              <button class="type-btn" data-type="treat" onclick="selectType(this)" data-i18n="type_treat">💊 치료법</button>
+              <button class="type-btn" data-type="q" onclick="selectType(this)" data-i18n="type_q">❓ 질문</button>
+              <button class="type-btn" data-type="cheer" onclick="selectType(this)" data-i18n="type_cheer">🤗 응원</button>
+            </div>
+            <div class="msg-input-row">
+              <textarea class="msg-textarea" id="msg-input" placeholder="메시지를 입력하세요..." rows="1"
+                onkeydown="handleKey(event)" oninput="autoResize(this)" data-i18n-placeholder="msg_placeholder"></textarea>
+              <button class="send-btn" onclick="sendMessage()">➤</button>
+            </div>
+          </div>
+        </div>
+        <div class="chat-side">
+          <div class="panel-card">
+            <div class="panel-title" data-i18n="online_users">접속중</div>
+            <div id="online-users-list"><!-- filled by JS --></div>
+          </div>
+          <div class="panel-card">
+            <div class="panel-title" data-i18n="room_info">방 정보</div>
+            <div id="chat-room-info" style="font-size:0.8rem;color:var(--text-muted);line-height:1.6"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── CREATE ROOM MODAL ──────────────────────── -->
+<div class="overlay" id="create-modal">
+  <div class="modal">
+    <div class="modal-title" data-i18n="modal_title">새 방 만들기</div>
+    <div class="modal-sub" data-i18n="modal_sub">병명으로 커뮤니티를 개설하고 경험을 나눠보세요</div>
+    <div class="form-group">
+      <label class="form-label" data-i18n="disease_name">병명 *</label>
+      <input class="form-input" id="new-room-name" type="text" placeholder="예: 루게릭병, 갑상선암, 1형 당뇨..." data-i18n-placeholder="disease_placeholder" />
+    </div>
+    <div class="form-group">
+      <label class="form-label" data-i18n="room_desc_label">방 소개</label>
+      <textarea class="form-textarea" id="new-room-desc" placeholder="이 방에 대해 간단히 소개해 주세요..." data-i18n-placeholder="desc_placeholder"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label" data-i18n="tags_label">태그 (쉼표로 구분)</label>
+      <input class="form-input" id="new-room-tags" type="text" placeholder="예: 희귀병, 치료중, 완치자" data-i18n-placeholder="tags_placeholder" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('create-modal')" data-i18n="cancel">취소</button>
+      <button class="btn btn-primary" onclick="createRoom()" data-i18n="create_confirm">방 만들기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── NICKNAME MODAL ─────────────────────────── -->
+<div class="overlay" id="nick-modal">
+  <div class="modal">
+    <div class="modal-title" data-i18n="nick_title">닉네임 설정</div>
+    <div class="modal-sub" data-i18n="nick_sub">채팅에서 사용할 닉네임을 입력하거나 추천 중 선택하세요 (익명 가능)</div>
+    <div class="form-group">
+      <label class="form-label" data-i18n="nick_label">닉네임</label>
+      <input class="form-input" id="nick-input" type="text" maxlength="20" />
+      <div class="nick-suggestions" id="nick-suggestions"><!-- filled by JS --></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="confirmNick()" data-i18n="enter_room">입장하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── TOAST ──────────────────────────────────── -->
+<div class="toast" id="toast"></div>
+
+<!-- ─── CONNECTION STATUS ───────────────────────── -->
+<div class="conn-status" id="conn-status">
+  <div class="conn-dot connecting" id="conn-dot"></div>
+  <span id="conn-text">연결 중...</span>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+//  i18n
+// ══════════════════════════════════════════════════
+const i18n = {
+  ko: {
+    logo_sub: '함께 이겨내요', hero_title: '병을 가진 당신, 혼자가 아닙니다',
+    hero_desc: '같은 병을 가진 전 세계인과 경험, 치료 정보, 위로를 나누세요. 병명으로 방을 만들거나 참여해 보세요.',
+    create_room: '방 만들기', find_room: '방 찾기', search_placeholder: '병명으로 검색...',
+    sort_active: '활성순', sort_new: '최신순', sort_msg: '메시지순',
+    no_rooms_title: '해당하는 방이 없어요', no_rooms_desc: '직접 방을 만들어 보세요!',
+    online: '명 접속중', share: '공유', welcome_msg: '방에 입장했습니다. 서로를 존중하며 경험을 나눠주세요 💚',
+    type_exp: '📖 경험담', type_treat: '💊 치료법', type_q: '❓ 질문', type_cheer: '🤗 응원',
+    msg_placeholder: '메시지를 입력하세요... (Ctrl+Enter로 전송)',
+    online_users: '접속중', room_info: '방 정보', popular_tags: '인기 태그', stats: '현황',
+    total_rooms: '전체 방', total_msgs: '오늘 메시지',
+    modal_title: '새 방 만들기', modal_sub: '병명으로 커뮤니티를 개설하고 경험을 나눠보세요',
+    disease_name: '병명 *', disease_placeholder: '예: 루게릭병, 갑상선암, 1형 당뇨...',
+    room_desc_label: '방 소개', desc_placeholder: '이 방에 대해 간단히 소개해 주세요...',
+    tags_label: '태그 (쉼표로 구분)', tags_placeholder: '예: 희귀병, 치료중, 완치자',
+    cancel: '취소', create_confirm: '방 만들기',
+    nick_title: '닉네임 설정', nick_sub: '채팅에서 사용할 닉네임을 입력하거나 추천 중 선택하세요 (익명 가능)',
+    nick_label: '닉네임', enter_room: '입장하기',
+    notice: '⚠️ 이곳의 정보는 의학적 조언이 아닙니다. 치료 결정은 반드시 의사와 상담하세요. 서로의 경험을 나누고 응원하는 공간입니다.',
+    joined: '님이 입장했습니다', left: '님이 나갔습니다',
+    room_created: '방이 생성되었습니다!', link_copied: '링크가 복사되었습니다',
+    fill_name: '병명을 입력해 주세요', fill_nick: '닉네임을 입력해 주세요',
+    msg_badge: { exp: '경험담', treat: '치료법', q: '질문', cheer: '응원' },
+    server_retry: '서버에 연결 중입니다. 잠시 후 다시 시도하거나 먼저 서버를 실행하세요.',
+    demo_mode: '데모 모드 (서버 미연결)',
+  },
+  en: {
+    logo_sub: 'Heal Together', hero_title: "You're not alone in your illness",
+    hero_desc: 'Share experiences, treatments, and support with people worldwide facing the same illness. Create or join a room by disease name.',
+    create_room: 'Create Room', find_room: 'Find Room', search_placeholder: 'Search by disease name...',
+    sort_active: 'Most Active', sort_new: 'Newest', sort_msg: 'Most Messages',
+    no_rooms_title: 'No rooms found', no_rooms_desc: 'Be the first to create one!',
+    online: 'online', share: 'Share', welcome_msg: 'You joined the room. Please be respectful and share kindly 💚',
+    type_exp: '📖 Experience', type_treat: '💊 Treatment', type_q: '❓ Question', type_cheer: '🤗 Support',
+    msg_placeholder: 'Type a message... (Ctrl+Enter to send)',
+    online_users: 'Online', room_info: 'Room Info', popular_tags: 'Popular Tags', stats: 'Stats',
+    total_rooms: 'Total Rooms', total_msgs: "Today's Messages",
+    modal_title: 'Create New Room', modal_sub: 'Open a community room by disease name and share experiences',
+    disease_name: 'Disease Name *', disease_placeholder: 'e.g. ALS, Thyroid Cancer, Type 1 Diabetes...',
+    room_desc_label: 'Description', desc_placeholder: 'Briefly describe this room...',
+    tags_label: 'Tags (comma-separated)', tags_placeholder: 'e.g. rare disease, in treatment, survivor',
+    cancel: 'Cancel', create_confirm: 'Create Room',
+    nick_title: 'Set Nickname', nick_sub: 'Enter a nickname or pick one (anonymous ok)',
+    nick_label: 'Nickname', enter_room: 'Enter Room',
+    notice: '⚠️ Information here is not medical advice. Always consult a doctor for treatment decisions. This is a space to share experiences and support each other.',
+    joined: 'joined', left: 'left',
+    room_created: 'Room created!', link_copied: 'Link copied!',
+    fill_name: 'Please enter a disease name', fill_nick: 'Please enter a nickname',
+    msg_badge: { exp: 'Experience', treat: 'Treatment', q: 'Question', cheer: 'Support' },
+    server_retry: 'Connecting to server. Please start the server first.',
+    demo_mode: 'Demo Mode (no server)',
+  },
+  ja: {
+    logo_sub: '一緒に乗り越えよう', hero_title: 'あなたは一人じゃない',
+    hero_desc: '同じ病気を持つ世界中の人と経験・治療情報・励ましを分かち合いましょう。病名で部屋を作ったり参加したりできます。',
+    create_room: '部屋を作る', find_room: '部屋を探す', search_placeholder: '病名で検索...',
+    sort_active: '活発順', sort_new: '新着順', sort_msg: 'メッセージ順',
+    no_rooms_title: '部屋が見つかりません', no_rooms_desc: '最初に部屋を作ってみましょう！',
+    online: '人がオンライン', share: 'シェア', welcome_msg: '部屋に入室しました。お互いを尊重して経験を分かち合いましょう 💚',
+    type_exp: '📖 体験談', type_treat: '💊 治療法', type_q: '❓ 質問', type_cheer: '🤗 応援',
+    msg_placeholder: 'メッセージを入力... (Ctrl+Enterで送信)',
+    online_users: 'オンライン', room_info: '部屋情報', popular_tags: '人気タグ', stats: '統計',
+    total_rooms: '全部屋', total_msgs: '今日のメッセージ',
+    modal_title: '新しい部屋を作る', modal_sub: '病名でコミュニティを開設し、経験を共有しましょう',
+    disease_name: '病名 *', disease_placeholder: '例: ALS、甲状腺癌、1型糖尿病...',
+    room_desc_label: '説明', desc_placeholder: 'この部屋について簡単に説明してください...',
+    tags_label: 'タグ（カンマ区切り）', tags_placeholder: '例: 難病、治療中、完治者',
+    cancel: 'キャンセル', create_confirm: '部屋を作る',
+    nick_title: 'ニックネーム設定', nick_sub: 'チャットで使うニックネームを入力または選択（匿名可）',
+    nick_label: 'ニックネーム', enter_room: '入室する',
+    notice: '⚠️ ここの情報は医療アドバイスではありません。治療の決定は必ず医師に相談してください。',
+    joined: 'さんが入室しました', left: 'さんが退室しました',
+    room_created: '部屋が作られました！', link_copied: 'リンクがコピーされました',
+    fill_name: '病名を入力してください', fill_nick: 'ニックネームを入力してください',
+    msg_badge: { exp: '体験談', treat: '治療法', q: '質問', cheer: '応援' },
+    server_retry: 'サーバーに接続中です。', demo_mode: 'デモモード',
+  },
+  zh: {
+    logo_sub: '共同战胜疾病', hero_title: '患病的你，并不孤单',
+    hero_desc: '与全世界患有相同疾病的人分享经验、治疗信息和鼓励。按病名创建或加入聊天室。',
+    create_room: '创建房间', find_room: '找房间', search_placeholder: '按病名搜索...',
+    sort_active: '最活跃', sort_new: '最新', sort_msg: '消息最多',
+    no_rooms_title: '没有找到房间', no_rooms_desc: '创建第一个房间吧！',
+    online: '人在线', share: '分享', welcome_msg: '您已加入房间。请互相尊重，分享经验 💚',
+    type_exp: '📖 经验分享', type_treat: '💊 治疗方法', type_q: '❓ 提问', type_cheer: '🤗 加油',
+    msg_placeholder: '输入消息... (Ctrl+Enter发送)',
+    online_users: '在线用户', room_info: '房间信息', popular_tags: '热门标签', stats: '统计',
+    total_rooms: '全部房间', total_msgs: '今日消息',
+    modal_title: '创建新房间', modal_sub: '按病名创建社区，分享经验',
+    disease_name: '病名 *', disease_placeholder: '例：渐冻症、甲状腺癌、1型糖尿病...',
+    room_desc_label: '房间介绍', desc_placeholder: '简单介绍一下这个房间...',
+    tags_label: '标签（逗号分隔）', tags_placeholder: '例：罕见病、治疗中、康复者',
+    cancel: '取消', create_confirm: '创建房间',
+    nick_title: '设置昵称', nick_sub: '输入或选择一个昵称（可匿名）',
+    nick_label: '昵称', enter_room: '进入房间',
+    notice: '⚠️ 此处信息不构成医疗建议。治疗决策请务必咨询医生。',
+    joined: '加入了房间', left: '离开了房间',
+    room_created: '房间已创建！', link_copied: '链接已复制',
+    fill_name: '请输入病名', fill_nick: '请输入昵称',
+    msg_badge: { exp: '经验', treat: '治疗', q: '问题', cheer: '加油' },
+    server_retry: '正在连接服务器...', demo_mode: '演示模式',
+  },
+  es: {
+    logo_sub: 'Juntos lo superamos', hero_title: 'No estás solo en tu enfermedad',
+    hero_desc: 'Comparte experiencias, tratamientos y apoyo con personas de todo el mundo con la misma enfermedad.',
+    create_room: 'Crear Sala', find_room: 'Buscar Sala', search_placeholder: 'Buscar por enfermedad...',
+    sort_active: 'Más activo', sort_new: 'Más nuevo', sort_msg: 'Más mensajes',
+    no_rooms_title: 'No se encontraron salas', no_rooms_desc: '¡Sé el primero en crear una!',
+    online: 'en línea', share: 'Compartir', welcome_msg: 'Entraste a la sala. Por favor sé respetuoso 💚',
+    type_exp: '📖 Experiencia', type_treat: '💊 Tratamiento', type_q: '❓ Pregunta', type_cheer: '🤗 Apoyo',
+    msg_placeholder: 'Escribe un mensaje... (Ctrl+Enter)',
+    online_users: 'En línea', room_info: 'Info de Sala', popular_tags: 'Etiquetas Populares', stats: 'Estadísticas',
+    total_rooms: 'Total de Salas', total_msgs: 'Mensajes hoy',
+    modal_title: 'Crear Nueva Sala', modal_sub: 'Abre una sala por nombre de enfermedad',
+    disease_name: 'Enfermedad *', disease_placeholder: 'ej. ELA, Cáncer de tiroides, Diabetes tipo 1...',
+    room_desc_label: 'Descripción', desc_placeholder: 'Describe brevemente esta sala...',
+    tags_label: 'Etiquetas (separadas por coma)', tags_placeholder: 'ej. enfermedad rara, en tratamiento',
+    cancel: 'Cancelar', create_confirm: 'Crear Sala',
+    nick_title: 'Configurar Apodo', nick_sub: 'Ingresa un apodo o elige uno (anónimo ok)',
+    nick_label: 'Apodo', enter_room: 'Entrar',
+    notice: '⚠️ La información aquí no es consejo médico. Consulta siempre a un médico.',
+    joined: 'entró', left: 'salió',
+    room_created: '¡Sala creada!', link_copied: '¡Enlace copiado!',
+    fill_name: 'Ingresa el nombre de la enfermedad', fill_nick: 'Ingresa un apodo',
+    msg_badge: { exp: 'Experiencia', treat: 'Tratamiento', q: 'Pregunta', cheer: 'Apoyo' },
+    server_retry: 'Conectando al servidor...', demo_mode: 'Modo Demo',
+  },
+  fr: {
+    logo_sub: 'Guérir ensemble', hero_title: 'Vous n\'êtes pas seul dans votre maladie',
+    hero_desc: 'Partagez expériences, traitements et soutien avec des personnes du monde entier atteintes de la même maladie.',
+    create_room: 'Créer une Salle', find_room: 'Trouver une Salle', search_placeholder: 'Rechercher par maladie...',
+    sort_active: 'Plus actif', sort_new: 'Plus récent', sort_msg: 'Plus de messages',
+    no_rooms_title: 'Aucune salle trouvée', no_rooms_desc: 'Soyez le premier à en créer une !',
+    online: 'en ligne', share: 'Partager', welcome_msg: 'Vous avez rejoint la salle. Soyez respectueux 💚',
+    type_exp: '📖 Expérience', type_treat: '💊 Traitement', type_q: '❓ Question', type_cheer: '🤗 Soutien',
+    msg_placeholder: 'Tapez un message... (Ctrl+Entrée)',
+    online_users: 'En ligne', room_info: 'Info Salle', popular_tags: 'Tags Populaires', stats: 'Statistiques',
+    total_rooms: 'Total Salles', total_msgs: "Messages aujourd'hui",
+    modal_title: 'Créer une Salle', modal_sub: 'Ouvrez une salle par nom de maladie',
+    disease_name: 'Maladie *', disease_placeholder: 'ex. SLA, Cancer thyroïde, Diabète type 1...',
+    room_desc_label: 'Description', desc_placeholder: 'Décrivez brièvement cette salle...',
+    tags_label: 'Tags (séparés par virgule)', tags_placeholder: 'ex. maladie rare, en traitement',
+    cancel: 'Annuler', create_confirm: 'Créer la Salle',
+    nick_title: 'Choisir un Pseudonyme', nick_sub: 'Entrez ou choisissez un pseudo (anonyme ok)',
+    nick_label: 'Pseudonyme', enter_room: 'Entrer',
+    notice: '⚠️ Les informations ici ne constituent pas des conseils médicaux. Consultez toujours un médecin.',
+    joined: 'a rejoint', left: 'a quitté',
+    room_created: 'Salle créée !', link_copied: 'Lien copié !',
+    fill_name: 'Entrez le nom de la maladie', fill_nick: 'Entrez un pseudonyme',
+    msg_badge: { exp: 'Expérience', treat: 'Traitement', q: 'Question', cheer: 'Soutien' },
+    server_retry: 'Connexion au serveur...', demo_mode: 'Mode Démo',
+  }
+};
+
+let lang = 'ko';
+function t(key, sub) {
+  const d = i18n[lang] || i18n.ko;
+  if (sub) return (d[key] && d[key][sub]) || (i18n.ko[key] && i18n.ko[key][sub]) || sub;
+  return d[key] || i18n.ko[key] || key;
+}
+function setLang(l) {
+  lang = l;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.lang-btn').forEach(b => { if (b.textContent.trim() === {ko:'한국어',en:'English',ja:'日本語',zh:'中文',es:'Español',fr:'Français'}[l]) b.classList.add('active'); });
+  applyI18n();
+}
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    if (el.dataset.i18nSub) el.textContent = t(key, el.dataset.i18nSub);
+    else el.textContent = t(key);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
+}
+
+// ══════════════════════════════════════════════════
+//  State
+// ══════════════════════════════════════════════════
+let socket = null;
+let demoMode = false;
+let myNick = '';
+let currentRoom = null;
+let pendingRoom = null;
+let rooms = [];
+let myMsgType = 'exp';
+let statsInterval = null;
+let demoStats = { rooms: 0, users: 1, msgs: 0 };
+
+// Demo rooms seed
+const demoRooms = [
+  { id: 'r1', name: '루게릭병 (ALS)', desc: '근위축성 측삭 경화증 환자와 가족들의 공간입니다. 최신 치료 정보와 일상을 나눠요.', tags: ['희귀병', '신경질환', '치료중'], onlineCount: 3, msgCount: 47, createdAt: Date.now() - 86400000 },
+  { id: 'r2', name: '1형 당뇨', desc: '인슐린 의존 당뇨병 환자들의 경험과 혈당 관리 팁을 공유해요.', tags: ['당뇨', '인슐린', '만성질환'], onlineCount: 8, msgCount: 132, createdAt: Date.now() - 172800000 },
+  { id: 'r3', name: '갑상선암', desc: '갑상선암 진단부터 수술, 추적 관찰까지 함께 이야기 나눠요.', tags: ['암', '갑상선', '완치자환영'], onlineCount: 5, msgCount: 89, createdAt: Date.now() - 43200000 },
+  { id: 'r4', name: '루푸스 (SLE)', desc: '전신홍반성루푸스 환우들의 방. 면역억제제 경험, 증상 관리 팁 등을 나눠요.', tags: ['루푸스', '자가면역', '희귀병'], onlineCount: 4, msgCount: 61, createdAt: Date.now() - 259200000 },
+  { id: 'r5', name: '우울증·불안장애', desc: '정신건강에 어려움을 겪는 분들의 안전한 공간. 판단 없이 이야기해요.', tags: ['우울증', '불안', '정신건강'], onlineCount: 12, msgCount: 203, createdAt: Date.now() - 3600000 },
+  { id: 'r6', name: '파킨슨병', desc: '파킨슨병 환자와 가족들의 일상, 약물 치료 경험을 나눠요.', tags: ['파킨슨', '신경질환', '가족'], onlineCount: 2, msgCount: 34, createdAt: Date.now() - 604800000 },
+];
+
+// ══════════════════════════════════════════════════
+//  Socket.io Connection
+// ══════════════════════════════════════════════════
+function initSocket() {
+  try {
+    socket = io({ transports: ['websocket', 'polling'], timeout: 5000 });
+
+    socket.on('connect', () => {
+      setConnStatus('online');
+      demoMode = false;
+      socket.emit('getRooms');
+      socket.emit('getStats');
+    });
+
+    socket.on('disconnect', () => {
+      setConnStatus('offline');
+    });
+
+    socket.on('connect_error', () => {
+      if (!demoMode) {
+        demoMode = true;
+        setConnStatus('offline', t('demo_mode'));
+        loadDemoRooms();
+      }
+    });
+
+    socket.on('rooms', (data) => { rooms = data; renderRooms(); updateStats(); });
+    socket.on('stats', (data) => {
+      document.getElementById('stat-rooms').textContent = data.rooms;
+      document.getElementById('stat-users').textContent = data.users;
+      document.getElementById('stat-msgs').textContent = data.msgs;
+    });
+
+    socket.on('message', (msg) => appendMessage(msg));
+    socket.on('history', (msgs) => {
+      document.getElementById('messages-area').innerHTML =
+        `<div class="sys-msg"><span>${t('welcome_msg')}</span></div>`;
+      msgs.forEach(m => appendMessage(m));
+    });
+    socket.on('userJoined', (nick) => appendSys(`${nick} ${t('joined')}`));
+    socket.on('userLeft', (nick) => appendSys(`${nick} ${t('left')}`));
+    socket.on('onlineUsers', (users) => updateOnlineList(users));
+    socket.on('roomCreated', (room) => {
+      rooms.unshift(room);
+      renderRooms();
+      showToast(t('room_created'));
+    });
+    socket.on('roomUpdated', (room) => {
+      const idx = rooms.findIndex(r => r.id === room.id);
+      if (idx >= 0) rooms[idx] = room;
+      else rooms.unshift(room);
+      renderRooms();
+      if (currentRoom && currentRoom.id === room.id) {
+        document.getElementById('chat-online-count').textContent = room.onlineCount;
+      }
+    });
+
+  } catch(e) {
+    demoMode = true;
+    setConnStatus('offline', t('demo_mode'));
+    loadDemoRooms();
+  }
+}
+
+function setConnStatus(state, label) {
+  const dot = document.getElementById('conn-dot');
+  const txt = document.getElementById('conn-text');
+  dot.className = 'conn-dot ' + state;
+  if (state === 'online') txt.textContent = '연결됨';
+  else if (state === 'connecting') txt.textContent = t('server_retry');
+  else txt.textContent = label || t('demo_mode');
+}
+
+function loadDemoRooms() {
+  rooms = JSON.parse(JSON.stringify(demoRooms));
+  demoStats.rooms = rooms.length;
+  renderRooms();
+  document.getElementById('stat-rooms').textContent = rooms.length;
+  document.getElementById('stat-users').textContent = '—';
+  document.getElementById('stat-msgs').textContent = '—';
+}
+
+// ══════════════════════════════════════════════════
+//  Rooms
+// ══════════════════════════════════════════════════
+let activeTag = null;
+let sortMode = 'active';
+let searchQ = '';
+
+function filterTag(el, tag) {
+  document.querySelectorAll('.tag-pill').forEach(p => p.classList.remove('active'));
+  if (activeTag === tag) { activeTag = null; }
+  else { activeTag = tag; el.classList.add('active'); }
+  filterRooms();
+}
+function filterRooms() {
+  searchQ = document.getElementById('search').value.toLowerCase();
+  renderRooms();
+}
+function sortRooms(val) { sortMode = val; renderRooms(); }
+
+function renderRooms() {
+  let filtered = rooms.filter(r => {
+    const q = searchQ;
+    const matchSearch = !q || r.name.toLowerCase().includes(q) || (r.desc||'').toLowerCase().includes(q) || (r.tags||[]).some(t => t.toLowerCase().includes(q));
+    const matchTag = !activeTag || (r.tags||[]).some(t => t.includes(activeTag));
+    return matchSearch && matchTag;
+  });
+
+  if (sortMode === 'active') filtered.sort((a,b) => (b.onlineCount||0) - (a.onlineCount||0));
+  else if (sortMode === 'new') filtered.sort((a,b) => b.createdAt - a.createdAt);
+  else if (sortMode === 'msg') filtered.sort((a,b) => (b.msgCount||0) - (a.msgCount||0));
+
+  const grid = document.getElementById('rooms-grid');
+  const empty = document.getElementById('rooms-empty');
+
+  if (filtered.length === 0) { grid.innerHTML = ''; empty.style.display = ''; return; }
+  empty.style.display = 'none';
+
+  grid.innerHTML = filtered.map(r => {
+    const isNew = Date.now() - r.createdAt < 86400000;
+    const tagsHtml = (r.tags||[]).map(t => `<span class="room-tag">#${t}</span>`).join('');
+    return `
+    <div class="room-card" onclick="joinRoom('${r.id}')">
+      <div class="room-card-header">
+        <div class="room-name">${escHtml(r.name)}</div>
+        <span class="room-badge ${isNew ? 'badge-new' : 'badge-active'}">${isNew ? 'NEW' : 'LIVE'}</span>
+      </div>
+      <div class="room-desc">${escHtml(r.desc||'')}</div>
+      <div class="room-tags">${tagsHtml}</div>
+      <div class="room-meta">
+        <span><span class="online-dot"></span> ${r.onlineCount||0}${lang==='en'?' online':lang==='ja'?'人':lang==='zh'?'人':lang==='es'?' en línea':lang==='fr'?' en ligne':'명'}</span>
+        <span>💬 ${r.msgCount||0}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateStats() {
+  document.getElementById('stat-rooms').textContent = rooms.length;
+}
+
+// ══════════════════════════════════════════════════
+//  Join / Create Room
+// ══════════════════════════════════════════════════
+function joinRoom(roomId) {
+  const room = rooms.find(r => r.id === roomId);
+  if (!room) return;
+  pendingRoom = room;
+  if (!myNick) { openNickModal(room); return; }
+  enterRoom(room);
+}
+
+function enterRoom(room) {
+  currentRoom = room;
+  document.getElementById('chat-room-name').textContent = room.name;
+  document.getElementById('chat-room-desc-meta').textContent = room.desc || '';
+  document.getElementById('chat-room-info').innerHTML = `
+    <strong>${escHtml(room.name)}</strong><br>
+    ${escHtml(room.desc||'')}<br><br>
+    ${(room.tags||[]).map(t=>`<span class="room-tag">#${t}</span>`).join(' ')}
+  `;
+  document.getElementById('messages-area').innerHTML =
+    `<div class="sys-msg"><span>${t('welcome_msg')}</span></div>`;
+
+  showView('chat');
+
+  if (!demoMode && socket) {
+    socket.emit('joinRoom', { roomId: room.id, nick: myNick });
+  } else {
+    // Demo: generate some sample messages
+    updateOnlineList([myNick, '희망이🌱', 'Patient#2847', 'Anonymous']);
+    document.getElementById('chat-online-count').textContent = 4;
+    const demoMsgs = [
+      { nick: '희망이🌱', type: 'exp', text: '저는 진단받은 지 2년이 됐어요. 처음엔 너무 막막했는데 여기서 많은 분들 이야기 듣고 힘을 얻었습니다.', ts: Date.now()-300000, likes: 5 },
+      { nick: 'Patient#2847', type: 'treat', text: '저는 물리치료를 주 3회 받고 있는데 통증 완화에 많이 도움이 됐어요. 담당 의사 선생님과 상의해 보세요.', ts: Date.now()-200000, likes: 3 },
+      { nick: '응원해요💪', type: 'cheer', text: '모두 정말 대단해요. 매일 이겨내고 있다는 것 자체가 엄청난 용기예요! 파이팅!', ts: Date.now()-100000, likes: 8 },
+    ];
+    demoMsgs.forEach(m => appendMessage(m));
+  }
+}
+
+function leaveRoom() {
+  if (!demoMode && socket && currentRoom) {
+    socket.emit('leaveRoom', { roomId: currentRoom.id, nick: myNick });
+  }
+  currentRoom = null;
+  showView('list');
+}
+
+// ══════════════════════════════════════════════════
+//  Send Message
+// ══════════════════════════════════════════════════
+function sendMessage() {
+  const input = document.getElementById('msg-input');
+  const text = input.value.trim();
+  if (!text || !currentRoom) return;
+  input.value = '';
+  autoResize(input);
+
+  const msg = { roomId: currentRoom.id, nick: myNick, type: myMsgType, text, ts: Date.now(), likes: 0 };
+
+  if (!demoMode && socket) {
+    socket.emit('message', msg);
+  } else {
+    appendMessage({ ...msg, me: true });
+  }
+}
+
+function handleKey(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); sendMessage(); }
+}
+
+function selectType(btn) {
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  myMsgType = btn.dataset.type;
+}
+
+// ══════════════════════════════════════════════════
+//  Render Messages
+// ══════════════════════════════════════════════════
+const msgColors = ['#4a9d8f','#357a6d','#6dbdaf','#2a7a6d','#5a8d7f','#3a8d7f'];
+function nickColor(nick) {
+  let h = 0; for(let c of nick) h = (h*31 + c.charCodeAt(0)) & 0xFFFF;
+  return msgColors[h % msgColors.length];
+}
+
+function appendMessage(msg) {
+  const area = document.getElementById('messages-area');
+  const isMe = msg.me || msg.nick === myNick;
+  const wrap = document.createElement('div');
+  wrap.className = 'msg-wrap' + (isMe ? ' me' : '');
+  wrap.dataset.msgId = msg.id || Math.random().toString(36).slice(2);
+
+  const typeLabels = { exp: t('msg_badge','exp'), treat: t('msg_badge','treat'), q: t('msg_badge','q'), cheer: t('msg_badge','cheer') };
+  const typeClass = { exp: 'type-exp', treat: 'type-treat', q: 'type-q', cheer: 'type-cheer' };
+  const initial = msg.nick ? msg.nick[0].toUpperCase() : '?';
+  const col = nickColor(msg.nick || '?');
+  const timeStr = new Date(msg.ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+
+  wrap.innerHTML = `
+    <div class="msg-avatar" style="background:linear-gradient(135deg,${col}cc,${col})">${initial}</div>
+    <div class="msg-body">
+      <div class="msg-name-time">
+        <strong>${escHtml(msg.nick)}</strong>
+        <span class="msg-type-badge ${typeClass[msg.type]||'type-exp'}">${typeLabels[msg.type]||msg.type}</span>
+        <span>${timeStr}</span>
+      </div>
+      <div class="msg-bubble">${escHtml(msg.text)}</div>
+      <div class="msg-footer">
+        <button class="like-btn" onclick="likeMsg(this,'${msg.id||''}')">
+          ❤️ <span class="like-count">${msg.likes||0}</span>
+        </button>
+      </div>
+    </div>`;
+
+  area.appendChild(wrap);
+  area.scrollTop = area.scrollHeight;
+}
+
+function appendSys(text) {
+  const area = document.getElementById('messages-area');
+  const div = document.createElement('div');
+  div.className = 'sys-msg';
+  div.innerHTML = `<span>${escHtml(text)}</span>`;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+function likeMsg(btn, msgId) {
+  btn.classList.toggle('liked');
+  const cnt = btn.querySelector('.like-count');
+  const n = parseInt(cnt.textContent);
+  cnt.textContent = btn.classList.contains('liked') ? n + 1 : n - 1;
+  if (!demoMode && socket && msgId) socket.emit('likeMsg', { msgId, roomId: currentRoom?.id });
+}
+
+// ══════════════════════════════════════════════════
+//  Online Users
+// ══════════════════════════════════════════════════
+function updateOnlineList(users) {
+  const list = document.getElementById('online-users-list');
+  document.getElementById('chat-online-count').textContent = users.length;
+  list.innerHTML = users.slice(0,10).map(u => `
+    <div class="user-item">
+      <div class="user-av" style="background:linear-gradient(135deg,${nickColor(u)}cc,${nickColor(u)})">${u[0].toUpperCase()}</div>
+      ${escHtml(u)}
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════
+//  Create Room Modal
+// ══════════════════════════════════════════════════
+function openCreateModal() {
+  document.getElementById('new-room-name').value = '';
+  document.getElementById('new-room-desc').value = '';
+  document.getElementById('new-room-tags').value = '';
+  openModal('create-modal');
+}
+
+function createRoom() {
+  const name = document.getElementById('new-room-name').value.trim();
+  if (!name) { showToast(t('fill_name')); return; }
+  const desc = document.getElementById('new-room-desc').value.trim();
+  const tags = document.getElementById('new-room-tags').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const room = { id: 'r' + Date.now(), name, desc, tags, onlineCount: 0, msgCount: 0, createdAt: Date.now() };
+  closeModal('create-modal');
+
+  if (!demoMode && socket) {
+    socket.emit('createRoom', room);
+  } else {
+    rooms.unshift(room);
+    renderRooms();
+    showToast(t('room_created'));
+  }
+}
+
+// ══════════════════════════════════════════════════
+//  Nickname Modal
+// ══════════════════════════════════════════════════
+const nickPrefixes = ['용감한','희망찬','따뜻한','밝은','강인한','인내의','치유중인','함께하는','나은내일','회복중인'];
+const nickSuffixes = ['환우','전사','희망이','별빛','새싹','나무','바다','강','산','들꽃'];
+function randomNick() {
+  return nickPrefixes[Math.floor(Math.random()*nickPrefixes.length)] + nickSuffixes[Math.floor(Math.random()*nickSuffixes.length)] + Math.floor(Math.random()*100);
+}
+
+function openNickModal(room) {
+  const suggestions = Array.from({length:4}, randomNick);
+  const sugg = document.getElementById('nick-suggestions');
+  sugg.innerHTML = suggestions.map(n => `<span class="nick-chip" onclick="document.getElementById('nick-input').value='${n}'">${n}</span>`).join('');
+  document.getElementById('nick-input').value = randomNick();
+  openModal('nick-modal');
+}
+
+function confirmNick() {
+  const n = document.getElementById('nick-input').value.trim();
+  if (!n) { showToast(t('fill_nick')); return; }
+  myNick = n;
+  closeModal('nick-modal');
+  if (pendingRoom) { enterRoom(pendingRoom); pendingRoom = null; }
+}
+
+// ══════════════════════════════════════════════════
+//  Share
+// ══════════════════════════════════════════════════
+function copyRoomLink() {
+  const url = location.href.split('?')[0] + '?room=' + (currentRoom?.id||'');
+  navigator.clipboard.writeText(url).then(() => showToast(t('link_copied')));
+}
+
+// ══════════════════════════════════════════════════
+//  Utilities
+// ══════════════════════════════════════════════════
+function showView(v) {
+  document.getElementById('view-list').style.display = v==='list' ? '' : 'none';
+  document.getElementById('view-chat').style.display = v==='chat' ? '' : 'none';
+}
+function showList() { if(currentRoom) leaveRoom(); else showView('list'); }
+
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.overlay').forEach(o => o.addEventListener('click', e => { if(e.target===o) o.classList.remove('show'); }));
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+// ══════════════════════════════════════════════════
+//  Init
+// ══════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  applyI18n();
+  initSocket();
+
+  // Check URL param for direct room link
+  const params = new URLSearchParams(location.search);
+  const roomParam = params.get('room');
+  if (roomParam) {
+    setTimeout(() => {
+      const r = rooms.find(r => r.id === roomParam);
+      if (r) joinRoom(r.id);
+    }, 1000);
+  }
+});
+</script>
+</body>
+</html>
